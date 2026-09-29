@@ -1,0 +1,47 @@
+# Autograder for this repo. Grades PRs into `main` (e.g. production -> main)
+# by calling the odoo-module-grader composite action.
+#
+# Before this works you must:
+#   1. Replace ORG below with the org/owner that holds odoo-module-grader.
+#   2. Set a repo variable TASK_ID (Settings -> Secrets and variables ->
+#      Actions -> Variables) to task-1 or task-2.
+#   3. If odoo-module-grader is private, make it reachable (see repo README).
+name: Autograde
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches: [main]          # only grade PRs whose base is main
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  grade:
+    if: ${{ github.event_name == 'pull_request' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run autograder
+        uses: chid-testing/grader@v2     # pin to a tag so grading can't drift
+        with:
+          task-id: ${{ vars.TASK_ID }}
+
+  recheck:
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      startsWith(github.event.comment.body, '/recheck')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/pull/${{ github.event.issue.number }}/head
+      - name: Run autograder
+        uses: chid-testing/grader@v2
+        with:
+          task-id: ${{ vars.TASK_ID }}
+
